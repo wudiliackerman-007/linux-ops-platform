@@ -1,0 +1,14 @@
+# 告诉 Grafana 去哪里加载 JSON 看板文件（容器/主机路径由安装脚本决定）
+apiVersion: 1
+
+providers:
+  - name: ops-dashboards
+    orgId: 1
+    folder: "Ops Platform"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

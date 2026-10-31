@@ -1,0 +1,131 @@
+# =============================================================================
+# 业务层告警规则：可用性 / 错误率 / 延迟 / 缓存 / 依赖
+# 原则：只对"用户能感知的坏结果"告警，不对每个内部指标告警。
+# =============================================================================
+groups:
+  - name: opslink
+    interval: 30s
+    rules:
+      - alert: AppDown
+        expr: up{job="opslink"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: app
+        annotations:
+          summary: "opslink 实例抓不到 /metrics"
+          description: "进程挂了还是 Nginx 后面没起来？systemctl status opslink && journalctl -u opslink -n 50"
+
+      - alert: AppHighErrorRate
+        expr: |
+          sum(rate(opslink_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(opslink_http_requests_total[5m])), 0.001)
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: app
+        annotations:
+          summary: "opslink 5xx 率 {{ printf \"%.1f\" $value }}%"
+          description: "5 分钟内超过 5%。先看日志 grep '\"status\":500' /var/log/nginx/opslink_access.log | tail，再看 journalctl -u opslink 里的异常栈。"
+
+      - alert: AppHighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(opslink_http_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: app
+        annotations:
+          summary: "opslink P95 延迟 {{ printf \"%.2f\" $value }}s"
+          description: "接口变慢。依次查：MySQL 慢查询、Redis 是否降级、连接池是否耗尽。"
+
+      - alert: AppCacheDegraded
+        expr: opslink_dependency_up{dependency="redis"} == 0
+        for: 10m
+        labels:
+          severity: warning
+          category: app
+        annotations:
+          summary: "Redis 不可用，应用已降级直连 MySQL"
+          description: '业务没挂，但 DB 压力会上升。查 systemctl status redis-server、redis-cli info。属于「可容忍但要修」的故障。'
+
+      - alert: AppCacheHitRateLow
+        expr: |
+          sum(rate(opslink_cache_hits_total[15m]))
+          /
+          clamp_min(sum(rate(opslink_cache_hits_total[15m])) + sum(rate(opslink_cache_misses_total[15m])), 0.001)
+          < 0.7
+        for: 15m
+        labels:
+          severity: warning
+          category: app
+        annotations:
+          summary: "缓存命中率 {{ printf \"%.1f\" $value }}% 偏低"
+          description: "命中率低会让 MySQL QPS 上升。查 TTL 是否太短、是否被大量随机 key 打穿。"
+
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: db
+        annotations:
+          summary: "MySQL 不可用"
+          description: "systemctl status mysql；tail -100 /var/log/mysql/error.log。应用此时应返回 503 而不是 500。"
+
+      - alert: MySQLHighConnections
+        expr: |
+          mysql_global_status_threads_connected
+          /
+          clamp_min(mysql_global_variables_max_connections, 1) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: db
+        annotations:
+          summary: "MySQL 连接数使用率 {{ printf \"%.1f\" $value }}%"
+          description: "连接池泄漏或应用重启没释放。SHOW PROCESSLIST 看是谁占着。"
+
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          category: db
+        annotations:
+          summary: "MySQL 慢查询速率 {{ printf \"%.2f\" $value }}/s"
+          description: "开启慢日志后查看：pt-query-digest /var/log/mysql/slow.log 或 mysqldumpslow。"
+
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: proxy
+        annotations:
+          summary: "Nginx 指标抓不到"
+          description: "nginx -t && systemctl status nginx；确认 stub_status 的 8081 端口在监听。"
+
+      - alert: NginxConnectionsHigh
+        expr: nginx_connections_active > 300
+        for: 5m
+        labels:
+          severity: warning
+          category: proxy
+        annotations:
+          summary: "Nginx 活跃连接 {{ $value }}"
+          description: "上游处理慢导致连接堆积。看 upstream_response_time 与后端 P95。"
+
+      - alert: NginxRateLimited
+        expr: rate(nginx_http_requests_total[5m]) > 200
+        for: 5m
+        labels:
+          severity: warning
+          category: proxy
+        annotations:
+          summary: "请求速率 {{ printf \"%.0f\" $value }} r/s，可能触发了限流"
+          description: "注意客户端会收到 429。确认是压测还是攻击，必要时调整 limit_req。"

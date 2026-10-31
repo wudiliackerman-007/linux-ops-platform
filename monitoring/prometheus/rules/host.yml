@@ -1,0 +1,101 @@
+# =============================================================================
+# 主机层告警规则：CPU / 内存 / 磁盘 / 负载 / 文件句柄 / 时间同步
+# 面试要点：告警要"可行动"。CPU 高不一定告警，磁盘快满才是必须今晚处理的。
+# =============================================================================
+groups:
+  - name: host
+    interval: 30s
+    rules:
+      - alert: HostDown
+        expr: up{job="node"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: host
+        annotations:
+          summary: "主机 {{ $labels.instance }} 的 node_exporter 抓不到"
+          description: "机器可能宕机、网络不通或 node_exporter 挂了。先 ping，再 systemctl status node_exporter。"
+
+      - alert: HostHighCPU
+        expr: |
+          100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} CPU 持续高负载"
+          description: "5 分钟内 CPU 使用率 {{ printf \"%.1f\" $value }}%，用 top / pidstat -p ALL 1 找进程。"
+
+      - alert: HostHighMemory
+        expr: |
+          (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} 内存使用率过高"
+          description: "内存使用率 {{ printf \"%.1f\" $value }}%，排查是否有内存泄漏（ps aux --sort=-rss | head）。"
+
+      - alert: HostDiskUsageHigh
+        expr: |
+          (1 - node_filesystem_avail_bytes{fstype=~"ext4|xfs",mountpoint="/"}
+             / node_filesystem_size_bytes{fstype=~"ext4|xfs",mountpoint="/"}) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} 根分区使用率 {{ printf \"%.1f\" $value }}%"
+          description: "超过 80%，先 du -sh /* | sort -h 定位大目录，再清理日志/旧版本。"
+
+      - alert: HostDiskWillFull
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{fstype=~"ext4|xfs",mountpoint="/"}[6h], 4*3600) < 0
+        for: 30m
+        labels:
+          severity: critical
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} 根分区预计 4 小时内写满"
+          description: "按最近 6 小时增长速度推算。立即清理或扩容，磁盘满会导致 MySQL 写入失败。"
+
+      - alert: HostHighLoad
+        expr: node_load5 > 8
+        for: 10m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} 5 分钟负载 {{ printf \"%.1f\" $value }}"
+          description: "负载持续高于核数需排查：是 CPU 型还是 IO 型（iostat -x 1 看 %iowait）。"
+
+      - alert: HostOOMKill
+        expr: increase(node_vmstat_oom_kill[10m]) > 0
+        labels:
+          severity: critical
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} 发生 OOM Kill"
+          description: "内核杀掉了进程。查 journalctl -k | grep -i 'killed process'，确认被杀的是哪个服务。"
+
+      - alert: HostClockSkew
+        expr: abs(node_timex_offset_seconds) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} 时钟偏移 {{ printf \"%.3f\" $value }}s"
+          description: "时间不同步会导致日志对不上、TLS 证书校验失败。systemctl status chrony。"
+
+      - alert: HostFileDescriptorsHigh
+        expr: node_filefd_allocated / node_filefd_maximum * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: host
+        annotations:
+          summary: "{{ $labels.instance }} 文件句柄使用率 {{ printf \"%.1f\" $value }}%"
+          description: "检查是否有连接/文件泄漏：lsof -p <pid> | wc -l。"

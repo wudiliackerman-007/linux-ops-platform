@@ -1,0 +1,65 @@
+# =============================================================================
+# 元监控 & 备份：监控系统自身的健康和"备份是否还在跑"
+# 面试点：监控系统自己挂了要有第二道防线（这里用 cron + 外部可用性检查 + 告警静默记录）
+# =============================================================================
+groups:
+  - name: meta
+    interval: 30s
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: meta
+        annotations:
+          summary: "抓取目标 {{ $labels.job }} / {{ $labels.instance }} 不可达"
+          description: "通用兜底规则：任何 exporter 挂了都会触发。"
+
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: meta
+        annotations:
+          summary: "Prometheus 配置重载失败"
+          description: "配置语法错误。promtool check config /etc/prometheus/prometheus.yml"
+
+      - alert: PrometheusRuleEvalFailed
+        expr: increase(prometheus_rule_evaluation_failures_total[10m]) > 0
+        labels:
+          severity: warning
+          category: meta
+        annotations:
+          summary: "Prometheus 规则计算失败"
+          description: "规则里的 PromQL 有问题，检查 /etc/prometheus/rules 下最近改动。"
+
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: meta
+        annotations:
+          summary: "Alertmanager 抓不到"
+          description: "告警发不出去等于没有告警。systemctl status alertmanager，curl -s 127.0.0.1:9093/-/ready。"
+
+      - alert: BackupStale
+        expr: time() - ops_backup_last_success_timestamp_seconds > 86400 * 2
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "MySQL 备份超过 2 天没成功"
+          description: "备份脚本由 cron 触发，请看 /var/log/ops-platform/backup.log。没有备份的数据库等于没有数据库。"
+
+      - alert: BackupSizeAnomaly
+        expr: |
+          ops_backup_last_size_bytes < 1024
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "最近一次备份文件小于 1KB，可能备份失败"
+          description: "检查 mysqldump 退出码与磁盘空间。"

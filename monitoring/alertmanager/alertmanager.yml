@@ -1,0 +1,52 @@
+# =============================================================================
+# Alertmanager 配置（单机版）
+# 路由策略：critical 立刻发，warning 合并后发；同实例 critical 抑制同实例 warning
+# install_monitoring.sh 会把 __WEBHOOK_URL__ 替换成真实地址
+# =============================================================================
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default-webhook
+  group_by: ["alertname", "instance", "severity"]
+  group_wait: 30s          # 首次触发等 30s，把同批告警合并成一条，别刷屏
+  group_interval: 5m       # 同组有新告警时，等 5m 再发
+  repeat_interval: 4h      # 一直没恢复的话，4 小时提醒一次
+  routes:
+    - matchers: ['severity="critical"']
+      receiver: default-webhook
+      group_wait: 10s
+      repeat_interval: 1h
+    - matchers: ['severity="warning"']
+      receiver: default-webhook
+      group_wait: 2m
+      repeat_interval: 6h
+
+inhibit_rules:
+  # 主机整个挂了，就不用再报它上面 CPU/磁盘的 warning
+  - source_matchers: ['alertname="HostDown"']
+    target_matchers: ['severity="warning"']
+    equal: ["instance"]
+  # 应用不可达时，"错误率高"是必然的，抑制掉减少噪音
+  - source_matchers: ['alertname="AppDown"']
+    target_matchers: ['alertname="AppHighErrorRate"']
+    equal: ["instance"]
+
+receivers:
+  # 默认：打到本机 webhook 接收器（scripts/webhook_receiver.py），
+  # 它会写日志并回显到终端，跑故障演练时肉眼可见。
+  - name: default-webhook
+    webhook_configs:
+      - url: "__WEBHOOK_URL__"
+        send_resolved: true
+        max_alerts: 20
+
+  # 想接企业微信/钉钉/邮件时，取消注释并填对应参数：
+  # - name: email
+  #   email_configs:
+  #     - to: "ops@example.com"
+  #       from: "alertmanager@example.com"
+  #       smarthost: "smtp.example.com:587"
+  #       auth_username: "alertmanager@example.com"
+  #       auth_password: "__SMTP_PASSWORD__"
+  #       require_tls: true
