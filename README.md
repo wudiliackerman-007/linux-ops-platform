@@ -186,6 +186,7 @@ sudo ops/chaos/06_network_delay.sh 300 180  # 网络延迟       → AppHighLate
 | [docs/07-30 天计划](docs/07-30天执行计划.md) | 逐日任务与验收标准 |
 | [docs/08-GitHub 与 Gitee 推送](docs/08-GitHub与Gitee推送指南.md) | 国内网络怎么把仓库推上去 |
 | [docs/09-实机验证报告](docs/09-实机验证报告.md) | 真机验收矩阵、自愈时间线、踩坑与修复 |
+| [docs/10-从零复现操作卡](docs/10-从零复现操作卡.md) | 一页纸照着做：每步该看到什么 + 卡点排查表 |
 
 ## 已知局限（如实写，面试也这么说）
 

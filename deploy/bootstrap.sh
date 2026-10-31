@@ -122,8 +122,33 @@ vm.dirty_background_ratio = 10
 # ---------- 连接跟踪（NAT 场景） ----------
 net.netfilter.nf_conntrack_max = 262144
 EOF
-sysctl --system >/dev/null
-log_ok "sysctl 已生效（net.core.somaxconn=$(sysctl -n net.core.somaxconn)）"
+# 只关心我们自己写下去的那些键是否生效。
+# `sysctl --system` 会顺带应用 Ubuntu 自带的 /etc/sysctl.d/10-*.conf，
+# 其中 net.ipv4.conf.all.accept_source_route / promote_secondaries 在 22.04 的内核上
+# 会报 "Invalid argument"（这是内核行为，不是我们的配置写错了），不能让它把日志刷红。
+sysctl --system >/tmp/ops-sysctl.log 2>&1 || true
+ours_total=0
+ours_failed=0
+# 归一化空白：ip_local_port_range 这类键的值本身带空格（"10240 65000"）
+norm() { tr -s '[:space:]' ' ' | sed -e 's/^ //' -e 's/ $//'; }
+while IFS= read -r line; do
+  # 去掉行尾注释，再按第一个 = 切成 key / value
+  line="$(printf '%s' "${line}" | sed -E 's/[[:space:]]*#.*$//')"
+  key="$(printf '%s' "${line}" | cut -d= -f1 | norm)"
+  val="$(printf '%s' "${line}" | cut -d= -f2- | norm)"
+  [[ -z "${key}" || -z "${val}" ]] && continue
+  ours_total=$((ours_total + 1))
+  cur="$(sysctl -n "${key}" 2>/dev/null | norm)"
+  if [[ "${cur}" != "${val}" ]]; then
+    log_warn "内核参数未生效：${key}（期望 ${val}，实际 ${cur:-读取失败}）"
+    ours_failed=$((ours_failed + 1))
+  fi
+done < <(grep -E '^[a-z].*=' /etc/sysctl.d/99-ops.conf)
+if [[ "${ours_failed}" -eq 0 ]]; then
+  log_ok "内核参数全部生效（${ours_total} 项，somaxconn=$(sysctl -n net.core.somaxconn)）"
+else
+  log_warn "${ours_total} 项里有 ${ours_failed} 项未生效，多半是当前环境不允许（容器/云主机常见）"
+fi
 
 cat >/etc/security/limits.d/99-ops.conf <<'EOF'
 *    soft nofile 65535
