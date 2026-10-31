@@ -169,6 +169,19 @@ done
 # 日报先跑一次，保证 textfile 指标立刻存在（否则 ReportStale 告警会从"没数据"开始）
 systemctl start ops-report.service || log "首次生成日报失败，检查 journalctl -u ops-report"
 
+# 备份也立刻跑一次。
+# 原因：默认备份时间是 03:20，如果白天装完机器，要到第二天凌晨才有第一份备份，
+# 这期间 healthcheck 的「最近备份距今」一定是失败的（全新机器上实测 1/20 失败），
+# 新手会以为装坏了。装完立刻备一份，验收才是 20/20 全绿。
+systemctl start ops-backup.service || log "首次备份失败，检查 journalctl -u ops-backup"
+sleep 1
+ls -1t /data/backup/mysql/*.sql.gz 2>/dev/null | head -1 | while read -r b; do
+  log "首份备份：${b}（$(du -h "${b}" | cut -f1)）"
+done
+
+# 巡检跑一次，把 ops_healthcheck_* 指标立刻写出来
+systemctl start ops-healthcheck.service || log "首次巡检有失败项，看上面输出"
+
 log ""
 log "定时任务列表："
 systemctl list-timers 'ops-*' --no-pager || true
