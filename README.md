@@ -67,6 +67,28 @@ CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci
 > 一台 4C/6G 的 Ubuntu 22.04 虚拟机，全部指标来自真实采集：主机资源、应用 QPS/延迟/错误率、
 > 缓存命中率、MySQL/Nginx 连接数、依赖可用性。截图时的流量是用 curl 压出来的（200/302/404 混合）。
 
+## 只想先看看代码？
+
+不用装 MySQL/Redis，也能把服务起起来——依赖连不上时业务接口返回 503，但进程、`/health/live`、`/metrics` 都是活的（这就是降级设计）：
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r app/requirements.txt
+cd app && pytest -q                     # 14 个用例，不依赖中间件，1 秒内跑完
+
+# 故意把依赖指向不存在的端口，看它怎么表现
+OPSLINK_MYSQL_PORT=3399 OPSLINK_REDIS_PORT=6399 uvicorn main:app --port 8000 &
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/health/live   # 200：进程活着
+curl -s http://127.0.0.1:8000/health/ready                                   # 503 + 具体原因
+curl -s http://127.0.0.1:8000/metrics | head -20                             # 200：指标照常暴露
+```
+
+`/health/ready` 的返回是这样的，值班的人一眼能看出是依赖问题而不是代码问题：
+
+```json
+{"status":"ok","checks":{"mysql":"error: 数据库暂时不可用，请稍后重试","redis":"degraded"}}
+```
+
 ## 快速开始
 
 ```bash

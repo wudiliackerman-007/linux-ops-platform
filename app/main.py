@@ -292,7 +292,10 @@ def health_ready() -> JSONResponse:
         DEPENDENCY_UP.labels("mysql").set(1)
     except Exception as exc:  # noqa: BLE001
         ok = False
-        details["checks"]["mysql"] = f"error: {exc.__class__.__name__}"
+        # 把 HTTPException 的 detail 带出来，值班的人一眼知道是「连不上」还是「SQL 出错」，
+        # 而不是看到一个光秃秃的异常类名
+        reason = getattr(exc, "detail", None) or exc.__class__.__name__
+        details["checks"]["mysql"] = f"error: {reason}"
         DEPENDENCY_UP.labels("mysql").set(0)
 
     if cache.client is not None:
