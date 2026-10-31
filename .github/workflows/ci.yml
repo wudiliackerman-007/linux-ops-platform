@@ -27,6 +27,21 @@ jobs:
       - name: Python 代码规范
         run: ruff check app --output-format=github
 
+      # 在 Windows 上编辑过的文件很容易带上 BOM 或 CRLF：
+      # BOM 会让 Grafana/JSON 解析失败，CRLF 会让服务器上的 bash 报 "$'\r': command not found"。
+      - name: 检查 BOM 与 CRLF（Windows 编辑器常见破坏）
+        run: |
+          fail=0
+          if grep -rIl $'\xEF\xBB\xBF' --exclude-dir=.git --exclude-dir=docs .; then
+            echo "::error::上面这些文件带 UTF-8 BOM，请去掉后重新提交"
+            fail=1
+          fi
+          if grep -rIl $'\r$' --exclude-dir=.git --exclude-dir=docs --include='*.sh' --include='*.py' --include='*.yml' .; then
+            echo "::error::上面这些文件是 CRLF 换行，脚本在 Linux 上会跑不起来"
+            fail=1
+          fi
+          exit $fail
+
       - name: Shell 脚本语法检查（bash -n）
         run: |
           fail=0

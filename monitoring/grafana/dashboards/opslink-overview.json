@@ -1,4 +1,4 @@
-﻿{
+{
   "annotations": {
     "list": []
   },
@@ -8,7 +8,7 @@
   "panels": [
     {
       "type": "stat",
-      "title": "涓绘満鍦ㄧ嚎",
+      "title": "主机在线",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -85,7 +85,7 @@
     },
     {
       "type": "stat",
-      "title": "搴旂敤鍙敤鎬э紙杩?1h锛?,
+      "title": "应用可用性（近 1h）",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -100,7 +100,7 @@
         {
           "refId": "A",
           "expr": "min(avg_over_time(up{job=\"opslink\"}[1h])) * 100",
-          "legendFormat": "鍙敤鎬?
+          "legendFormat": "可用性"
         }
       ],
       "options": {
@@ -139,7 +139,7 @@
     },
     {
       "type": "stat",
-      "title": "缂撳瓨鍛戒腑鐜囷紙杩?15m锛?,
+      "title": "缓存命中率（近 15m）",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -193,7 +193,7 @@
     },
     {
       "type": "stat",
-      "title": "杩愯鏃堕暱",
+      "title": "运行时长",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -229,7 +229,7 @@
     },
     {
       "type": "timeseries",
-      "title": "CPU 浣跨敤鐜?,
+      "title": "CPU 使用率",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -244,7 +244,7 @@
         {
           "refId": "A",
           "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\",instance=~\"$node_instance\"}[$__rate_interval])))",
-          "legendFormat": "鎬讳娇鐢ㄧ巼"
+          "legendFormat": "总使用率"
         },
         {
           "refId": "B",
@@ -276,7 +276,7 @@
     },
     {
       "type": "timeseries",
-      "title": "鍐呭瓨浣跨敤",
+      "title": "内存使用",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -291,17 +291,17 @@
         {
           "refId": "A",
           "expr": "(1 - node_memory_MemAvailable_bytes{instance=~\"$node_instance\"} / node_memory_MemTotal_bytes{instance=~\"$node_instance\"}) * 100",
-          "legendFormat": "宸茬敤 %"
+          "legendFormat": "已用 %"
         },
         {
           "refId": "B",
           "expr": "node_memory_MemAvailable_bytes{instance=~\"$node_instance\"} / 1024 / 1024 / 1024",
-          "legendFormat": "鍙敤 GB"
+          "legendFormat": "可用 GB"
         },
         {
           "refId": "C",
           "expr": "(1 - node_memory_SwapFree_bytes{instance=~\"$node_instance\"} / node_memory_SwapTotal_bytes{instance=~\"$node_instance\"}) * 100",
-          "legendFormat": "swap 宸茬敤 %"
+          "legendFormat": "swap 已用 %"
         }
       ],
       "fieldConfig": {
@@ -317,7 +317,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "鍙敤 GB"
+              "options": "可用 GB"
             },
             "properties": [
               {
@@ -344,7 +344,7 @@
     },
     {
       "type": "timeseries",
-      "title": "纾佺洏浣跨敤鐜?/ 鍓╀綑",
+      "title": "磁盘使用率 / 剩余",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -416,7 +416,7 @@
     },
     {
       "type": "timeseries",
-      "title": "缃戠粶鍚炲悙",
+      "title": "网络吞吐",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -461,7 +461,7 @@
     },
     {
       "type": "timeseries",
-      "title": "搴旂敤 QPS锛堟寜鐘舵€佺爜锛?,
+      "title": "应用 QPS（按状态码）",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -506,7 +506,7 @@
     },
     {
       "type": "timeseries",
-      "title": "鎺ュ彛寤惰繜 P95 / P99",
+      "title": "接口延迟 P95 / P99",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -556,7 +556,7 @@
     },
     {
       "type": "timeseries",
-      "title": "5xx 閿欒鐜?,
+      "title": "5xx 错误率",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -617,7 +617,7 @@
     },
     {
       "type": "timeseries",
-      "title": "渚濊禆鍙敤鎬э紙1=姝ｅ父锛?,
+      "title": "依赖可用性（1=正常）",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -675,7 +675,7 @@
     },
     {
       "type": "timeseries",
-      "title": "MySQL 杩炴帴鏁?/ Nginx 娲昏穬杩炴帴",
+      "title": "MySQL 连接数 / Nginx 活跃连接",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -725,7 +725,7 @@
     },
     {
       "type": "timeseries",
-      "title": "纾佺洏 IO 寤惰繜锛堣/鍐欙級",
+      "title": "磁盘 IO 延迟（读/写）",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -780,7 +780,7 @@
     "list": [
       {
         "name": "node_instance",
-        "label": "涓绘満",
+        "label": "主机",
         "type": "query",
         "datasource": {
           "type": "prometheus",
@@ -818,7 +818,7 @@
     ]
   },
   "timezone": "browser",
-  "title": "OpsLink 杩愮淮鎬昏",
+  "title": "OpsLink 运维总览",
   "uid": "opslink-overview",
-  "version": 2
+  "version": 3
 }
