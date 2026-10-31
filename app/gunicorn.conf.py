@@ -7,7 +7,7 @@ bind = os.getenv("OPSLINK_BIND", "127.0.0.1:8000")
 
 # worker 数经验公式：2 * CPU 核数 + 1。
 # 本机 4 vCPU -> 9 个撑不住 1GB 内存，所以这里取 min(公式, 内存约束)，
-# 实际压测后定在 4（见 docs/04-故障演练报告.md 的压测章节）。
+# 实际压测后定在 4（见 docs/04-故障演练记录.md 的压测章节）。
 _cores = multiprocessing.cpu_count()
 workers = int(os.getenv("OPSLINK_WORKERS", str(max(2, min(2 * _cores + 1, 8)))))
 

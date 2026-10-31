@@ -32,7 +32,7 @@ CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci
 > bug 就是这两遍暴露的）、`cleanup.sh` 拆掉再装回，最后还从 **`git clone` 出来的目录**直接装了一遍（285 秒）。
 > 装完巡检 20/20、7/7 抓取目标 up、6 类故障全部演练过；发布坏版本能 **34 秒自动回滚**，手动回滚 2 秒。
 > CI 的三个 job 也在 Ubuntu 22.04 上预跑过（**11/11 通过**）。完整数据和踩坑记录见
-> [docs/09-实机验证报告](docs/09-实机验证报告.md)。
+> [docs/05-实机验证报告](docs/05-实机验证报告.md)。
 
 ## 架构
 
@@ -106,6 +106,11 @@ sudo systemctl start ops-backup.service && journalctl -u ops-backup -n 20   # �
 curl -s http://127.0.0.1:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sort | uniq -c  # 全 up
 ```
 
+> **两种下载方式的区别**：`git clone` 下来的仓库保留脚本的可执行权限，可以直接
+> `sudo ./deploy/all_in_one.sh`；网页上 Code → Download ZIP 的包**不保留权限位**，
+> 解压后要先 `chmod +x deploy/*.sh scripts/*.sh ops/chaos/*.sh`。仓库里不含任何密码或密钥，
+> 首次安装时由 `deploy/lib/common.sh` 的 `get_or_create_secret` 随机生成。
+
 打开界面：
 
 | 地址 | 说明 |
@@ -145,7 +150,7 @@ scripts/
   install_timers.sh               安装 systemd timer
   webhook_receiver.py             告警接收器（标准库实现）
 ops/chaos/                        6 个故障演练脚本 + 演练手册
-docs/                             部署手册、On-call 手册、面试题、简历表达、30 天计划
+docs/                             概述、环境准备、部署手册、On-call、演练记录、验证报告、复现卡
 ```
 
 ## 关键设计决策
@@ -207,15 +212,10 @@ sudo ops/chaos/06_network_delay.sh 300 180  # 网络延迟       → AppHighLate
 | [docs/02-部署手册](docs/02-部署手册.md) | 分步部署 + 验收清单 + 常见报错 |
 | [docs/03-On-call 手册](docs/03-Oncall手册.md) | 告警响应流程、排查命令速查 |
 | [docs/04-故障演练](docs/04-故障演练记录.md) | 演练记录模板与真实记录 |
-| [docs/05-面试 30 题](docs/05-面试30题.md) | 高频题 + 追问 + 应答 |
-| [docs/06-简历与表达](docs/06-简历与面试表达.md) | 简历怎么写、3 分钟怎么讲 |
-| [docs/07-30 天计划](docs/07-30天执行计划.md) | 逐日任务与验收标准 |
-| [docs/08-GitHub 与 Gitee 推送](docs/08-GitHub与Gitee推送指南.md) | 国内网络怎么把仓库推上去 |
-| [docs/09-实机验证报告](docs/09-实机验证报告.md) | 真机验收矩阵、自愈时间线、踩坑与修复 |
-| [docs/10-从零复现操作卡](docs/10-从零复现操作卡.md) | 一页纸照着做：每步该看到什么 + 卡点排查表 |
-| [docs/11-面试自测题库与评分表](docs/11-面试自测题库与评分表.md) | 22 题打分卡、红线与加分项、共享屏幕演示脚本 |
+| [docs/05-实机验证报告](docs/05-实机验证报告.md) | 真机验收矩阵、自愈时间线、踩坑与修复 |
+| [docs/06-从零复现操作卡](docs/06-从零复现操作卡.md) | 一页纸照着做：每步该看到什么 + 卡点排查表 |
 
-## 已知局限（如实写，面试也这么说）
+## 已知局限（如实写）
 
 - 单机部署，没有高可用：Prometheus、MySQL 都是单点，挂了就是挂了（下一步可做 MySQL 主从 + Thanos/VictoriaMetrics 集群）
 - 没有容器化/K8s：环境本身是"传统运维"形态，K8s 是后续学习方向，不在本项目范围内
