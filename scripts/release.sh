@@ -42,8 +42,8 @@ if [[ "${PULL}" == "1" ]]; then
   sudo -u "${APP_USER}" git -C "${REPO}" fetch --all --prune
   sudo -u "${APP_USER}" git -C "${REPO}" reset --hard origin/main
 fi
-COMMIT="$(git -C "${REPO}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
-BRANCH="$(git -C "${REPO}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+COMMIT="$(sudo -u "${APP_USER}" git -C "${REPO}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+BRANCH="$(sudo -u "${APP_USER}" git -C "${REPO}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
 TS="$(date +%Y%m%d%H%M%S)"
 NEW="${APP_RELEASES}/${TS}"
 
@@ -98,6 +98,11 @@ fi
 if [[ "${OK}" != "1" ]]; then
   log "健康检查失败，最近日志："
   journalctl -u opslink -n 40 --no-pager || true
+  # 给这个坏版本打标记：留着现场方便排查，但 rollback.sh 默认会跳过它，
+  # 否则「自动回滚后再手动回滚」会滚回这个已知坏的版本（实测踩过）。
+  printf 'failed_at=%s\nreason=health-check-failed\n' "$(date '+%F %T')" >"${NEW}/BROKEN"
+  chown "${APP_USER}:${APP_USER}" "${NEW}/BROKEN" 2>/dev/null || true
+  log "已标记 ${NEW}/BROKEN（手动回滚会跳过它）"
   if [[ -n "${PREV}" && -d "${PREV}" ]]; then
     log "回滚到 ${PREV}"
     ln -sfn "${PREV}" "${APP_CURRENT}"
