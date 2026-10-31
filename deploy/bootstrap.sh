@@ -127,8 +127,13 @@ EOF
 # 其中 net.ipv4.conf.all.accept_source_route / promote_secondaries 在 22.04 的内核上
 # 会报 "Invalid argument"（这是内核行为，不是我们的配置写错了），不能让它把日志刷红。
 sysctl --system >/tmp/ops-sysctl.log 2>&1 || true
+# nf_conntrack 只有在模块加载后才存在 /proc/sys/net/netfilter/nf_conntrack_max。
+# 全新系统上这个模块通常还没加载（是 ufw/iptables 的 NAT 规则把它带起来的），
+# 所以先尝试加载；加载不到也不影响后面，只是那一项会读到空值。
+modprobe nf_conntrack 2>/dev/null || true
 ours_total=0
 ours_failed=0
+ours_missing=""
 # 归一化空白：ip_local_port_range 这类键的值本身带空格（"10240 65000"）
 norm() { tr -s '[:space:]' ' ' | sed -e 's/^ //' -e 's/ $//'; }
 while IFS= read -r line; do
@@ -138,14 +143,23 @@ while IFS= read -r line; do
   val="$(printf '%s' "${line}" | cut -d= -f2- | norm)"
   [[ -z "${key}" || -z "${val}" ]] && continue
   ours_total=$((ours_total + 1))
-  cur="$(sysctl -n "${key}" 2>/dev/null | norm)"
-  if [[ "${cur}" != "${val}" ]]; then
-    log_warn "内核参数未生效：${key}（期望 ${val}，实际 ${cur:-读取失败}）"
+  # 关键：这里必须容忍读取失败。
+  # 脚本是 `set -euo pipefail`，而 sysctl 读不存在的键会返回非 0；
+  # 一旦直接写 cur="$(sysctl -n ... | norm)"，管道失败会让整个脚本静默退出（rc=255），
+  # 表面上只看到 step 4 之后再没有任何输出——第一版就踩了这个坑。
+  cur="$(sysctl -n "${key}" 2>/dev/null | norm || true)"
+  if [[ -z "${cur}" ]]; then
+    ours_missing="${ours_missing} ${key}"
+    ours_failed=$((ours_failed + 1))
+  elif [[ "${cur}" != "${val}" ]]; then
+    log_warn "内核参数未生效：${key}（期望 ${val}，实际 ${cur}）"
     ours_failed=$((ours_failed + 1))
   fi
 done < <(grep -E '^[a-z].*=' /etc/sysctl.d/99-ops.conf)
 if [[ "${ours_failed}" -eq 0 ]]; then
   log_ok "内核参数全部生效（${ours_total} 项，somaxconn=$(sysctl -n net.core.somaxconn)）"
+elif [[ -n "${ours_missing}" ]]; then
+  log_warn "有 $(echo "${ours_missing}" | wc -w) 项在当前内核不存在（通常是模块未加载，不影响部署）：$(echo ${ours_missing} | tr ' ' '\n' | sed '/^$/d' | paste -sd, -)"
 else
   log_warn "${ours_total} 项里有 ${ours_failed} 项未生效，多半是当前环境不允许（容器/云主机常见）"
 fi
