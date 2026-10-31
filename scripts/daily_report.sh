@@ -49,6 +49,9 @@ except Exception:
 # 把数字格式化成两位小数，n/a 原样保留
 num() { awk -v v="$1" 'BEGIN{ if (v=="n/a" || v=="") print "n/a"; else printf "%.2f", v }'; }
 
+# 计数类指标取整：increase() 会做线性外推，不取整会出现「请求总数：4.80」这种看着像 bug 的输出
+cnt() { awk -v v="$1" 'BEGIN{ if (v=="n/a" || v=="") print "n/a"; else printf "%.0f", v }'; }
+
 # 百分比：分母为 0 时返回 n/a，避免 nan
 pct() { awk -v a="$1" -v b="$2" 'BEGIN{ if (a=="n/a"||b=="n/a"||b+0==0) print "n/a"; else printf "%.2f%%", a*100/b }'; }
 
@@ -104,8 +107,8 @@ except Exception:
 pq0() { local v; v="$(pq "$1")"; [[ "${v}" == "n/a" ]] && v=0; printf '%s' "${v}"; }
 ms() { awk -v v="$1" 'BEGIN{ if (v=="n/a" || v=="") print "n/a"; else printf "%.1f", v }'; }
 
-REQ_24H="$(num "$(pq0 'sum(increase(opslink_http_requests_total[24h]))')")"
-ERR_24H="$(num "$(pq0 'sum(increase(opslink_http_requests_total{status=~"5.."}[24h]))')")"
+REQ_24H="$(cnt "$(pq0 'sum(increase(opslink_http_requests_total[24h]))')")"
+ERR_24H="$(cnt "$(pq0 'sum(increase(opslink_http_requests_total{status=~"5.."}[24h]))')")"
 ERR_PCT="$(pct "$(pq0 'sum(increase(opslink_http_requests_total{status=~"5.."}[24h]))')" "$(pq0 'sum(increase(opslink_http_requests_total[24h]))')")"
 # 延迟用毫秒展示，秒级两位小数在 P95 只有几毫秒时会全变成 0.00
 P95_MS="$(ms "$(pq 'histogram_quantile(0.95, sum by (le) (rate(opslink_http_request_duration_seconds_bucket[1h]))) * 1000')")"

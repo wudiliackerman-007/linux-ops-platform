@@ -8,7 +8,7 @@ CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci
 [![ci](https://github.com/<用户名>/linux-ops-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/<用户名>/linux-ops-platform/actions/workflows/ci.yml)
 -->
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## 这是什么
@@ -16,7 +16,7 @@ CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci
 一个**单机但流程完整**的运维实践项目。业务是一个 FastAPI 短链服务（不是重点），
 重点是围绕它的一整套运维体系：
 
-| 层次 | 组件 | 我在里面做了什么 |
+| 层次 | 组件 | 本项目的实现要点 |
 |------|------|-----------------|
 | 系统 | Ubuntu 22.04、systemd、ufw、fail2ban、chrony | 换源、内核参数、文件句柄、swap、SSH 加固、最小权限 sudoers |
 | 接入 | Nginx 1.18 | HTTPS、HTTP→HTTPS、限流、JSON 访问日志、内网限制 `/metrics` |
@@ -33,6 +33,10 @@ CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci
 > 装完巡检 20/20、7/7 抓取目标 up、6 类故障全部演练过；发布坏版本能 **34 秒自动回滚**，手动回滚 2 秒。
 > CI 的三个 job 也在 Ubuntu 22.04 上预跑过（**11/11 通过**）。完整数据和踩坑记录见
 > [docs/05-实机验证报告](docs/05-实机验证报告.md)。
+
+> **第一次来这个仓库？** 只想跑起来看效果 → [docs/06 复现操作卡](docs/06-从零复现操作卡.md)；
+> 想看这套东西真跑过什么 → [docs/05 实机验证报告](docs/05-实机验证报告.md)；
+> 想理解为什么这么设计 → [docs/00 项目概述](docs/00-项目概述与架构.md)。
 
 ## 架构
 
@@ -66,6 +70,30 @@ CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci
 
 > 一台 4C/6G 的 Ubuntu 22.04 虚拟机，全部指标来自真实采集：主机资源、应用 QPS/延迟/错误率、
 > 缓存命中率、MySQL/Nginx 连接数、依赖可用性。截图时的流量是用 curl 压出来的（200/302/404 混合）。
+
+每天 08:00 还会生成一份文本日报（`/var/log/ops-platform/report/latest.txt`），不打开 Grafana 也能一眼看完前一天：
+
+```text
+== 一句话结论 ==
+  全部服务正常、无活跃告警、最近一次巡检通过。
+
+== 主机 ==
+  load(1/5/15)：0.03, 0.03, 0.00
+  内存：已用 22.6%（总 5921 MB，可用 4584 MB）
+  根分区：20%（剩余 46848340 KB）
+
+== 监控与告警 ==
+  抓取目标：7 / 7 在线
+  活跃告警：0 条
+
+== 应用（近 24 小时） ==
+  请求总数：12620    5xx：0（0.00%）
+  近 1 小时 P95 延迟：4.8 毫秒
+  缓存命中率：100.00%
+  可用性（avg_over_time）：96.86%
+```
+
+日报没按时生成也会告警（`ReportStale`）——监控不能只盯业务，还得盯「监控自己有没有在干活」。
 
 ## 只想先看看代码？
 
@@ -215,7 +243,7 @@ sudo ops/chaos/06_network_delay.sh 300 180  # 网络延迟       → AppHighLate
 | [docs/05-实机验证报告](docs/05-实机验证报告.md) | 真机验收矩阵、自愈时间线、踩坑与修复 |
 | [docs/06-从零复现操作卡](docs/06-从零复现操作卡.md) | 一页纸照着做：每步该看到什么 + 卡点排查表 |
 
-## 已知局限（如实写）
+## 已知局限
 
 - 单机部署，没有高可用：Prometheus、MySQL 都是单点，挂了就是挂了（下一步可做 MySQL 主从 + Thanos/VictoriaMetrics 集群）
 - 没有容器化/K8s：环境本身是"传统运维"形态，K8s 是后续学习方向，不在本项目范围内
