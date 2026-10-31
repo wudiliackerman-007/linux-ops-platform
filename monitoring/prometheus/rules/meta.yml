@@ -63,3 +63,23 @@ groups:
         annotations:
           summary: "最近一次备份文件小于 1KB，可能备份失败"
           description: "检查 mysqldump 退出码与磁盘空间。"
+
+      - alert: ReportStale
+        expr: time() - ops_report_last_success_timestamp_seconds > 86400 * 1.5
+        for: 30m
+        labels:
+          severity: warning
+          category: meta
+        annotations:
+          summary: "每日巡检日报超过 36 小时没生成"
+          description: "systemctl status ops-report.timer，journalctl -u ops-report -n 50。日报停了说明定时任务这一层坏了，比业务故障更隐蔽。"
+
+      - alert: ServicesFailedInReport
+        expr: ops_report_failed_services > 0
+        for: 10m
+        labels:
+          severity: warning
+          category: meta
+        annotations:
+          summary: "巡检日报里有 {{ $value }} 个服务不是 active"
+          description: "看 /var/log/ops-platform/report/latest.txt 的「服务」一节，systemctl status 对应单元。"

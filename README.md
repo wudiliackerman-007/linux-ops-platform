@@ -19,9 +19,9 @@
 | 接入 | Nginx 1.18 | HTTPS、HTTP→HTTPS、限流、JSON 访问日志、内网限制 `/metrics` |
 | 应用 | FastAPI + gunicorn | 健康探针、Prometheus 指标、Redis 缓存**可降级**、连接池 |
 | 数据 | MySQL 8 + Redis 6.0 | 最小权限账号、慢查询、内存上限 + LRU、备份与恢复演练 |
-| 监控 | Prometheus + Alertmanager + Grafana | 7 个抓取目标、26 条告警规则、分组降噪与抑制、自动加载看板 |
+| 监控 | Prometheus + Alertmanager + Grafana | 7 个抓取目标、28 条告警规则、分组降噪与抑制、自动加载看板 |
 | 发布 | releases + current 软链 | 秒级发布/回滚、健康检查失败自动回滚、保留 5 个版本 |
-| 日常 | systemd timer | 每日备份（带校验）、5 分钟巡检、每周恢复演练 |
+| 日常 | systemd timer | 每日备份（带校验）、5 分钟巡检、每日 08:00 巡检日报、每周恢复演练 |
 | 演练 | `ops/chaos/` 6 个脚本 | CPU/磁盘/MySQL/应用/Redis/网络 六类故障可复现 |
 
 > 已经在 VMware + Ubuntu 22.04（4C/6G）上从裸机装过一遍，巡检 20/20 通过、7/7 抓取目标 up、
@@ -111,7 +111,8 @@ scripts/
   release.sh rollback.sh          发布 / 回滚
   backup_mysql.sh                 备份（mysqldump + 校验 + 指标）
   restore_test.sh                 每周恢复演练（真的恢复到临时库）
-  healthcheck.sh                  全链路巡检
+  healthcheck.sh                  全链路巡检（5 分钟一次）
+  daily_report.sh                 每日巡检日报（08:00 一份，含 24 小时指标）
   install_timers.sh               安装 systemd timer
   webhook_receiver.py             告警接收器（标准库实现）
 ops/chaos/                        6 个故障演练脚本 + 演练手册

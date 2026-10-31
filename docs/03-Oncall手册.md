@@ -19,6 +19,19 @@ sudo /opt/ops-platform/bin/healthcheck.sh          # 20+ 项一把梭，先看�
 
 > 线上事故 80% 由变更引起。"最近改了什么"永远是最值钱的一问。
 
+### 没有告警时，值班第一件事：看日报
+
+```bash
+sudo cat /var/log/ops-platform/report/latest.txt
+```
+
+日报每天 08:00 自动生成（`ops-report.timer`），一页里包含：服务状态、抓取目标在线数、
+活跃告警、近 24 小时请求数/5xx/P95/缓存命中率/可用性、最近一次巡检与备份、证书剩余天数。
+交接班只需要贴这一份，不用口头描述"大概还行"。
+
+如果日报本身停了（`ReportStale` 告警），说明**定时任务这一层坏了**，优先级要当故障处理：
+`systemctl status ops-report.timer`、`journalctl -u ops-report -n 50`。
+
 ## 1. 严重级别与响应
 
 | 级别 | 含义 | 响应时限 | 动作 |

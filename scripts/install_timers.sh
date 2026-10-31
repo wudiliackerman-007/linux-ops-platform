@@ -22,7 +22,7 @@ log() { printf '[INFO ] %s\n' "$*"; }
 mkdir -p "${BIN_DIR}" /var/log/ops-platform /data/backup/mysql /data/backup/mysql-weekly
 
 # 把仓库里的运维脚本装到固定路径（systemd 单元里引用绝对路径，不依赖仓库位置）
-for s in backup_mysql.sh healthcheck.sh restore_test.sh release.sh rollback.sh; do
+for s in backup_mysql.sh healthcheck.sh daily_report.sh restore_test.sh release.sh rollback.sh; do
   if [[ -f "${REPO_ROOT}/scripts/${s}" ]]; then
     install -m 0755 "${REPO_ROOT}/scripts/${s}" "${BIN_DIR}/${s}"
     log "安装 ${BIN_DIR}/${s}"
@@ -125,17 +125,54 @@ WantedBy=timers.target
 EOF
 
 # ---------------------------------------------------------------------------
-# 4. 启用
+# 4. 每日 08:00 巡检日报
+#    和"每 5 分钟巡检"的区别：巡检回答"现在对不对"，日报回答"昨天一天怎么样"，
+#    早上上班第一眼看的就是它，不用登录机器逐个命令敲。
+# ---------------------------------------------------------------------------
+cat >/etc/systemd/system/ops-report.service <<'EOF'
+[Unit]
+Description=每日巡检日报（linux-ops-platform）
+After=network-online.target prometheus.service
+Wants=prometheus.service
+ConditionPathExists=/opt/ops-platform/bin/daily_report.sh
+
+[Service]
+Type=oneshot
+ExecStart=/opt/ops-platform/bin/daily_report.sh
+Nice=15
+TimeoutStartSec=300
+EOF
+
+cat >/etc/systemd/system/ops-report.timer <<'EOF'
+[Unit]
+Description=每日 08:00 生成巡检日报
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+RandomizedDelaySec=120
+Persistent=true
+Unit=ops-report.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
+# ---------------------------------------------------------------------------
+# 5. 启用
 # ---------------------------------------------------------------------------
 systemctl daemon-reload
-for t in ops-backup.timer ops-healthcheck.timer ops-restore-test.timer; do
+for t in ops-backup.timer ops-healthcheck.timer ops-restore-test.timer ops-report.timer; do
   systemctl enable --now "${t}"
   log "已启用 ${t}"
 done
+
+# 日报先跑一次，保证 textfile 指标立刻存在（否则 ReportStale 告警会从"没数据"开始）
+systemctl start ops-report.service || log "首次生成日报失败，检查 journalctl -u ops-report"
 
 log ""
 log "定时任务列表："
 systemctl list-timers 'ops-*' --no-pager || true
 log ""
+log "日报：sudo cat /var/log/ops-platform/report/latest.txt"
 log "手动触发一次备份验证：sudo systemctl start ops-backup.service && journalctl -u ops-backup -n 30"
 log "巡检日志：sudo journalctl -u ops-healthcheck --since '10 min ago'"
