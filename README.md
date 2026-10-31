@@ -107,6 +107,7 @@ deploy/
   install_nginx.sh        04 Nginx + TLS + 限流
   install_monitoring.sh   05 Prometheus/Alertmanager/Grafana/3 个 exporter
   all_in_one.sh           一键按序执行，日志落盘
+  cleanup.sh              拆掉平台（默认保留数据，--purge 才删）
 monitoring/
   prometheus/prometheus.yml       抓取配置
   prometheus/rules/*.yml          告警规则（host/app/meta）
