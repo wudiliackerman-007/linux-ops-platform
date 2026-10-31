@@ -1,0 +1,43 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---------- 密钥与本地配置（绝对不能提交） ----------
+.env
+*.env
+!app/*.env.example
+platform.env
+app.env
+*.pem
+*.key
+!docs/examples/*.key
+
+# ---------- 日志与数据 ----------
+*.log
+logs/
+backup/
+*.sql.gz
+*.rdb
+data/
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---------- 大文件 ----------
+*.iso
+*.deb
+*.tar.gz
+*.vmx
+*.vmdk
+*.log.gz
