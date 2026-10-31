@@ -3,7 +3,10 @@
 > 一台 Ubuntu 22.04 服务器，从裸机到「可发布、可监控、可告警、可回滚、可恢复」的完整运维环境。
 > 所有配置都在 Git 里，一条命令重建；所有故障都能演练。
 
-[![ci](https://github.com/haipeng-li/linux-ops-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/haipeng-li/linux-ops-platform/actions/workflows/ci.yml)
+CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci.yml`）
+<!-- 推送到 GitHub 后可以加一行徽章，把 <用户名> 换成自己的：
+[![ci](https://github.com/<用户名>/linux-ops-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/<用户名>/linux-ops-platform/actions/workflows/ci.yml)
+-->
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
