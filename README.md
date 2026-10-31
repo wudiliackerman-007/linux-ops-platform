@@ -100,7 +100,6 @@ curl -s http://127.0.0.1:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sor
 
 ```
 app/                      业务服务（FastAPI + gunicorn + pytest）
-conf/                     nginx / systemd / logrotate / ssh / sysctl 配置模板
 deploy/
   lib/common.sh           常量、日志、下载重试、健康检查等公共函数
   bootstrap.sh            01 系统初始化
