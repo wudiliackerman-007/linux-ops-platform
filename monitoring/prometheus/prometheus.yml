@@ -18,40 +18,57 @@ alerting:
     - static_configs:
         - targets: ["127.0.0.1:9093"]
 
+# 说明：所有 target 都监听在 127.0.0.1，只有 exporter 走本地抓取；
+# 但 instance 标签统一改写为 ops-lab:<端口>，这样告警消息、看板图例里
+# 看到的是人能读的实例名，而不是一排 127.0.0.1:91xx。
 scrape_configs:
   # Prometheus 自己：先监控监控系统本身，否则它挂了没人知道
   - job_name: prometheus
     static_configs:
       - targets: ["127.0.0.1:9090"]
+        labels:
+          instance: "ops-lab:9090"
 
   # 告警组件自身：告警发不出去比没有告警更危险
   - job_name: alertmanager
     static_configs:
       - targets: ["127.0.0.1:9093"]
+        labels:
+          instance: "ops-lab:9093"
 
   # 主机指标（CPU/内存/磁盘/网络/文件句柄）
   - job_name: node
     static_configs:
       - targets: ["127.0.0.1:9100"]
+        labels:
+          instance: "ops-lab:9100"
 
   # MySQL 指标（连接数/慢查询/InnoDB 状态）
   - job_name: mysql
     static_configs:
       - targets: ["127.0.0.1:9104"]
+        labels:
+          instance: "ops-lab:9104"
 
   # Nginx 指标（连接数、累计请求数）—— 来自 stub_status
   - job_name: nginx
     static_configs:
       - targets: ["127.0.0.1:9113"]
+        labels:
+          instance: "ops-lab:9113"
 
   # 业务指标（QPS、延迟、错误率、缓存命中率）
   - job_name: opslink
     metrics_path: /metrics
     static_configs:
       - targets: ["127.0.0.1:8000"]
+        labels:
+          instance: "ops-lab:8000"
 
   # Grafana 自身健康
   - job_name: grafana
     metrics_path: /metrics
     static_configs:
       - targets: ["127.0.0.1:3000"]
+        labels:
+          instance: "ops-lab:3000"

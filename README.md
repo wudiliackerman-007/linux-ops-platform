@@ -19,10 +19,13 @@
 | 接入 | Nginx 1.18 | HTTPS、HTTP→HTTPS、限流、JSON 访问日志、内网限制 `/metrics` |
 | 应用 | FastAPI + gunicorn | 健康探针、Prometheus 指标、Redis 缓存**可降级**、连接池 |
 | 数据 | MySQL 8 + Redis 6.0 | 最小权限账号、慢查询、内存上限 + LRU、备份与恢复演练 |
-| 监控 | Prometheus + Alertmanager + Grafana | 5 个抓取目标、20+ 条告警规则、分组降噪与抑制、自动加载看板 |
+| 监控 | Prometheus + Alertmanager + Grafana | 7 个抓取目标、26 条告警规则、分组降噪与抑制、自动加载看板 |
 | 发布 | releases + current 软链 | 秒级发布/回滚、健康检查失败自动回滚、保留 5 个版本 |
 | 日常 | systemd timer | 每日备份（带校验）、5 分钟巡检、每周恢复演练 |
 | 演练 | `ops/chaos/` 6 个脚本 | CPU/磁盘/MySQL/应用/Redis/网络 六类故障可复现 |
+
+> 已经在 VMware + Ubuntu 22.04（4C/6G）上从裸机装过一遍，巡检 20/20 通过、7/7 抓取目标 up、
+> 6 类故障全部演练过。完整数据和踩坑记录见 [docs/09-实机验证报告](docs/09-实机验证报告.md)。
 
 ## 架构
 
@@ -49,6 +52,13 @@
 
   所有 exporter 只监听 127.0.0.1 —— 只有 Prometheus 能拉，外部拿不到，减少攻击面。
 ```
+
+## 跑起来是什么样
+
+![Grafana 运维总览](docs/images/grafana-overview.png)
+
+> 一台 4C/6G 的 Ubuntu 22.04 虚拟机，全部指标来自真实采集：主机资源、应用 QPS/延迟/错误率、
+> 缓存命中率、MySQL/Nginx 连接数、依赖可用性。截图时的流量是用 curl 压出来的（200/302/404 混合）。
 
 ## 快速开始
 
@@ -170,6 +180,8 @@ sudo ops/chaos/06_network_delay.sh 300 180  # 网络延迟       → AppHighLate
 | [docs/05-面试 30 题](docs/05-面试30题.md) | 高频题 + 追问 + 应答 |
 | [docs/06-简历与表达](docs/06-简历与面试表达.md) | 简历怎么写、3 分钟怎么讲 |
 | [docs/07-30 天计划](docs/07-30天执行计划.md) | 逐日任务与验收标准 |
+| [docs/08-GitHub 与 Gitee 推送](docs/08-GitHub与Gitee推送指南.md) | 国内网络怎么把仓库推上去 |
+| [docs/09-实机验证报告](docs/09-实机验证报告.md) | 真机验收矩阵、自愈时间线、踩坑与修复 |
 
 ## 已知局限（如实写，面试也这么说）
 
