@@ -72,10 +72,24 @@ jobs:
           cache-dependency-path: app/requirements.txt
 
       - name: 安装依赖
-        run: pip install -r requirements.txt
+        run: |
+          python -V
+          pip install -q -U pip
+          pip install -r requirements.txt
+          pip list --format=columns | grep -Ei 'fastapi|uvicorn|gunicorn|prometheus|pymysql|redis|pytest|httpx|ruff'
 
       - name: 跑测试
-        run: pytest -q --maxfail=1
+        run: |
+          set +e
+          pytest -q --maxfail=1 2>&1 | tee /tmp/pytest.log
+          rc=${PIPESTATUS[0]}
+          {
+            echo "### pytest exit=$rc"
+            echo '```'
+            tail -80 /tmp/pytest.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
 
   # 校验监控配置和仪表盘 JSON 的语法，防止改坏了才在服务器上发现
   validate-config:

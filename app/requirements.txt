@@ -5,7 +5,7 @@ prometheus-client==0.21.1
 PyMySQL==1.1.1
 redis==5.2.1
 
-# 仅测试/CI 需要
+# test / CI only
 pytest==8.3.4
 httpx==0.28.1
 ruff==0.8.4
