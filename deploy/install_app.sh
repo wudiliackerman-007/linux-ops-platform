@@ -47,7 +47,7 @@ step "3/6 写入 systemd 服务单元"
 cat >/etc/systemd/system/${APP_NAME}.service <<EOF
 [Unit]
 Description=opslink 短链服务 (linux-ops-platform)
-Documentation=https://github.com/haipeng-li/linux-ops-platform
+Documentation=https://github.com/wudiliackerman-007/linux-ops-platform
 After=network-online.target mysql.service redis-server.service
 Wants=network-online.target
 

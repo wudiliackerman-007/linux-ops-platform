@@ -4,9 +4,9 @@
 > 所有配置都在 Git 里，一条命令重建；所有故障都能演练。
 
 CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci.yml`）
-<!-- 推送到 GitHub 后可以加一行徽章，把 <用户名> 换成自己的：
-[![ci](https://github.com/<用户名>/linux-ops-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/<用户名>/linux-ops-platform/actions/workflows/ci.yml)
--->
+
+[![ci](https://github.com/wudiliackerman-007/linux-ops-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/wudiliackerman-007/linux-ops-platform/actions/workflows/ci.yml)
+
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -122,7 +122,7 @@ curl -s http://127.0.0.1:8000/metrics | head -20                             # 2
 ```bash
 # 1. 准备：VMware + Ubuntu 22.04 Server，NAT，6GB/4核/60GB，能上网
 sudo apt update && sudo apt install -y git
-git clone git@github.com:<你的用户名>/linux-ops-platform.git /opt/ops-platform/repo
+git clone git@github.com:wudiliackerman-007/linux-ops-platform.git /opt/ops-platform/repo
 cd /opt/ops-platform/repo
 
 # 2. 一条命令部署（约 10 分钟，全程有日志）
