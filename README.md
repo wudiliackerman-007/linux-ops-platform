@@ -102,7 +102,7 @@ CI：GitHub Actions（`ruff` + `pytest` + `promtool`，见 `.github/workflows/ci
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r app/requirements.txt
-cd app && pytest -q                     # 14 个用例，不依赖中间件，1 秒内跑完
+cd app && python -m pytest -q          # 14 个用例，不依赖中间件，1 秒内跑完
 
 # 故意把依赖指向不存在的端口，看它怎么表现
 OPSLINK_MYSQL_PORT=3399 OPSLINK_REDIS_PORT=6399 uvicorn main:app --port 8000 &

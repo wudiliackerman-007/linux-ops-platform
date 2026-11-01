@@ -81,7 +81,7 @@ jobs:
       - name: 跑测试
         run: |
           set +e
-          pytest -q --maxfail=1 2>&1 | tee /tmp/pytest.log
+          python -m pytest -q --maxfail=1 2>&1 | tee /tmp/pytest.log
           rc=${PIPESTATUS[0]}
           {
             echo "### pytest exit=$rc"
